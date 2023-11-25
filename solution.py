@@ -14,9 +14,7 @@ def get_entropy(n_cat1: int, n_cat2: int) -> float:
     p_cat1 = n_cat1 / n_sum
     p_cat2 = n_cat2 / n_sum
     
-    entropy = -p_cat1 * np.log2(p_cat1) - p_cat2 * np.log2(p_cat2)
-
-    return entropy
+    return -p_cat1 * np.log2(p_cat1) - p_cat2 * np.log2(p_cat2)
 
 def get_entropy_for_labels(labels: list) -> float:
     n_cat1 = np.sum(labels == 0)
@@ -27,7 +25,7 @@ def information_gain(total_entropy: float,label_count: int, labels_left: list, l
     left_entropy = get_entropy_for_labels(labels_left)
     right_entropy = get_entropy_for_labels(labels_right)
 
-    return total_entropy - (len(labels_left) / len(labels)) * left_entropy - (len(labels_right) / len(labels)) * right_entropy
+    return total_entropy - (len(labels_left) / label_count) * left_entropy - (len(labels_right) / label_count) * right_entropy
 
 
 ###################### 2. feladat, optimális szeparáció #######################
@@ -44,8 +42,6 @@ def get_best_separation(features: list,
             labels_left = labels[features[:, feature] <= value]
             labels_right = labels[features[:, feature] > value]
 
-            
-
             info_gain = information_gain(total_entropy,label_count, labels_left, labels_right)
             
             if info_gain > best_info_gain:
@@ -55,9 +51,40 @@ def get_best_separation(features: list,
 
     return best_separation_feature, best_separation_value
 
+class Node:
+    def __init__(self, feature_index=None, value=None, true_branch=None, false_branch=None, gain=None, label=None):
+        self.feature_index = feature_index
+        self.value = value
+        self.true_branch = true_branch
+        self.false_branch = false_branch
+        self.gain = gain
+        self.label = label
+
+def build_tree(features, labels, depth=0, max_depth=5):
+    best_feature_index, best_value = get_best_separation(features, labels)
+
+    if best_feature_index is None or depth == max_depth:
+        return Node(label=np.argmax(np.bincount(labels)))
+
+    true_features = features[features[:, best_feature_index] <= best_value]
+    true_labels = labels[features[:, best_feature_index] <= best_value]
+
+    false_features = features[features[:, best_feature_index] > best_value]
+    false_labels = labels[features[:, best_feature_index] > best_value]
+
+    true_branch = build_tree(true_features, true_labels, depth + 1, max_depth)
+    false_branch = build_tree(false_features, false_labels, depth + 1, max_depth)
+
+    return Node(feature_index=best_feature_index, value=best_value, true_branch=true_branch, false_branch=false_branch)
+
 ################### 3. feladat, döntési fa implementációja ####################
 def main():
-    #TODO: implementálja a döntési fa tanulását!
+    train_data = np.genfromtxt('train.csv', delimiter=',')
+    X_train = train_data[:, :-1]
+    y_train = train_data[:, -1]
+    X_test = np.genfromtxt('test.csv', delimiter=',')
+    dec_tree = build_tree(X_train, y_train)
+
     return 0
 
 if __name__ == "__main__":
