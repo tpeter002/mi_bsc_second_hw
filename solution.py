@@ -60,10 +60,10 @@ class Node:
         self.gain = gain
         self.label = label
 
-def build_tree(features, labels, depth=0, max_depth=5):
+def build_tree(features, labels):
     best_feature_index, best_value = get_best_separation(features, labels)
 
-    if best_feature_index is None or depth == max_depth:
+    if get_entropy_for_labels(labels) == 0.0:
         return Node(label=np.argmax(np.bincount(labels)))
 
     true_features = features[features[:, best_feature_index] <= best_value]
@@ -72,20 +72,36 @@ def build_tree(features, labels, depth=0, max_depth=5):
     false_features = features[features[:, best_feature_index] > best_value]
     false_labels = labels[features[:, best_feature_index] > best_value]
 
-    true_branch = build_tree(true_features, true_labels, depth + 1, max_depth)
-    false_branch = build_tree(false_features, false_labels, depth + 1, max_depth)
+    true_branch = build_tree(true_features, true_labels)
+    false_branch = build_tree(false_features, false_labels)
 
     return Node(feature_index=best_feature_index, value=best_value, true_branch=true_branch, false_branch=false_branch)
 
 ################### 3. feladat, döntési fa implementációja ####################
 def main():
-    train_data = np.genfromtxt('train.csv', delimiter=',')
+    train_data = np.genfromtxt('train.csv', delimiter=',', dtype=int)
     X_train = train_data[:, :-1]
     y_train = train_data[:, -1]
     X_test = np.genfromtxt('test.csv', delimiter=',')
     dec_tree = build_tree(X_train, y_train)
+    
+    y_pred = [predict(dec_tree, sample) for sample in X_test]
+
+    np.savetxt('results.csv', y_pred, fmt='%d', delimiter=',')
 
     return 0
 
+
+def predict(node, instance):
+    # If this is a leaf node, return its label
+    if node.label is not None:
+        return node.label
+
+    # Choose the branch to follow based on the instance's feature
+    if instance[node.feature_index] <= node.value:
+        return predict(node.true_branch, instance)
+    else:
+        return predict(node.false_branch, instance)
+    
 if __name__ == "__main__":
     main()
