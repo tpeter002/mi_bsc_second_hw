@@ -84,7 +84,7 @@ def main():
     y_train = train_data[:, -1]
     X_test = np.genfromtxt('test.csv', delimiter=',')
     dec_tree = build_tree(X_train, y_train)
-    
+
     y_pred = [predict(dec_tree, sample) for sample in X_test]
 
     np.savetxt('results.csv', y_pred, fmt='%d', delimiter=',')
@@ -93,11 +93,9 @@ def main():
 
 
 def predict(node, instance):
-    # If this is a leaf node, return its label
     if node.label is not None:
         return node.label
 
-    # Choose the branch to follow based on the instance's feature
     if instance[node.feature_index] <= node.value:
         return predict(node.true_branch, instance)
     else:
